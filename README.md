@@ -1,6 +1,7 @@
 # Weather App
 
-A beautiful weather application built with Svelte and Tailwind CSS, inspired by Apple Weather. Uses the Open-Meteo API for weather data.
+A beautiful weather application built with Svelte and Tailwind CSS, and Gsap,
+inspired by Apple Weather app. Uses the Open-Meteo API for weather data.
 
 ## Features
 
