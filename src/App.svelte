@@ -1,6 +1,6 @@
 <script>
-  import { onMount } from 'svelte';
-  import { gsap } from 'gsap';
+  import { onMount, onDestroy } from 'svelte';
+  import AOS from 'aos';
   import { getWeatherForecast } from './utils/weatherApi.js';
   import LocationSearch from './components/LocationSearch.svelte';
   import SavedLocations from './components/SavedLocations.svelte';
@@ -11,12 +11,39 @@
   import WeatherDetails from './components/WeatherDetails.svelte';
   import { savedLocations } from './stores/locations.js';
   
-  let headerEl;
-  let mainEl;
+  // Scroll handling for parallax effects
+  let scrollY = 0;
+  let mainElement;
+  let rafId = null;
+  let lastScrollY = 0;
   
+  function handleScroll() {
+    const currentScrollY = window.scrollY;
+    // Only update if scroll changed significantly (throttling)
+    if (Math.abs(currentScrollY - lastScrollY) < 3) return;
+    lastScrollY = currentScrollY;
+    
+    // Use requestAnimationFrame for smooth 60fps updates
+    if (rafId) return;
+    
+    rafId = requestAnimationFrame(() => {
+      scrollY = currentScrollY;
+      if (mainElement) {
+        const scrollProgress = scrollY / Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+        mainElement.style.setProperty('--scroll-progress', scrollProgress);
+        mainElement.style.setProperty('--scroll-y', `${scrollY}px`);
+      }
+      rafId = null;
+    });
+  }
+  
+  // Weather data and UI state
   let weatherData = null;
   let backgroundGradient = 'from-blue-400 via-blue-500 to-blue-600';
+  let isTransitioning = false;
+  let previousLocation = null;
   
+  // Determines background gradient based on weather and time of day
   function getWeatherBackground(weatherCode, isDay, timezone = null) {
     let hour;
     if (timezone) {
@@ -117,6 +144,7 @@
     }
   }
   
+  // Updates the background gradient when weather changes
   function updateBackground() {
     if (weatherData?.current) {
       const weatherCode = weatherData.current.weather_code;
@@ -124,6 +152,7 @@
       const timezone = weatherData?.timezone || null;
       backgroundGradient = getWeatherBackground(weatherCode, isDay, timezone);
     } else {
+      // Default gradient based on current time if no weather data
       const hour = new Date().getHours();
       if (hour >= 5 && hour < 7) {
         backgroundGradient = 'from-sky-200 via-sky-300 to-blue-300';
@@ -141,12 +170,14 @@
     }
   }
   
+  // App state
   let backgroundInterval;
   let locationName = 'Loading...';
   let isLoading = true;
   let error = null;
   let currentLocation = null;
   
+  // Fetches weather data for given coordinates
   async function loadWeather(latitude, longitude, name = null) {
     isLoading = true;
     error = null;
@@ -155,6 +186,11 @@
       const data = await getWeatherForecast(latitude, longitude);
       weatherData = data;
       updateBackground();
+      
+      // Refresh scroll animations when new data loads
+      setTimeout(() => {
+        AOS.refresh();
+      }, 100);
       
       if (name) {
         locationName = name;
@@ -185,14 +221,33 @@
       console.error(err);
     } finally {
       isLoading = false;
+      // End transition animation after data loads
+      setTimeout(() => {
+        isTransitioning = false;
+      }, 900);
     }
   }
   
+  // Handles location selection with smooth transition
   function handleLocationSelect(location) {
+    // Skip transition if it's the same location
+    if (previousLocation && 
+        Math.abs(previousLocation.latitude - location.latitude) < 0.001 && 
+        Math.abs(previousLocation.longitude - location.longitude) < 0.001) {
+      return;
+    }
+    
+    previousLocation = currentLocation;
+    isTransitioning = true;
     currentLocation = location;
-    loadWeather(location.latitude, location.longitude, location.name);
+    
+    // Small delay before loading to show transition
+    setTimeout(() => {
+      loadWeather(location.latitude, location.longitude, location.name);
+    }, 100);
   }
   
+  // Gets user's current location or falls back to saved/default
   function getCurrentLocation() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -203,6 +258,8 @@
             name: 'My Location'
           };
           currentLocation = location;
+          
+          // Try to get a friendly location name
           try {
             const response = await fetch(
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
@@ -224,6 +281,7 @@
           loadWeather(position.coords.latitude, position.coords.longitude, location.name || 'My Location');
         },
         (err) => {
+          // Fallback to saved locations or default
           savedLocations.subscribe(locations => {
             if (locations.length > 0) {
               const firstLocation = locations[0];
@@ -242,6 +300,7 @@
         }
       );
     } else {
+      // No geolocation support, use saved or default
       savedLocations.subscribe(locations => {
         if (locations.length > 0) {
           const firstLocation = locations[0];
@@ -255,63 +314,61 @@
   }
   
   onMount(() => {
+    // Initialize scroll animations
+    AOS.init({
+      duration: 800,
+      easing: 'ease-out',
+      once: true,
+      offset: 50
+    });
+    
     savedLocations.load();
     updateBackground();
-    
-    setTimeout(() => {
-      if (headerEl && mainEl) {
-        // Clear any existing animations
-        gsap.killTweensOf([headerEl, mainEl]);
-        gsap.set([headerEl, mainEl], { clearProps: 'all' });
-        
-        gsap.fromTo([headerEl, mainEl],
-          {
-            opacity: 0,
-            y: 15
-          },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.9,
-            ease: 'expo.out',
-            stagger: 0.08
-          }
-        );
-      }
-    }, 50);
-    
     getCurrentLocation();
     
-    // Update background every minute
+    // Set up scroll handler for parallax effects
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    
+    // Update background gradient every minute to match time of day
     backgroundInterval = setInterval(() => {
       updateBackground();
     }, 60000);
-    
-    return () => {
-      if (backgroundInterval) {
-        clearInterval(backgroundInterval);
-      }
-    };
+  });
+  
+  onDestroy(() => {
+    // Cleanup intervals and event listeners
+    if (backgroundInterval) {
+      clearInterval(backgroundInterval);
+    }
+    window.removeEventListener('scroll', handleScroll);
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+    }
   });
 </script>
 
-<div class="weather-background min-h-screen bg-gradient-to-b {backgroundGradient} fixed inset-0 transition-all duration-[2000ms] ease-in-out z-0">
-  <!-- Color animation overlay -->
-  <div class="color-animation-overlay absolute inset-0 pointer-events-none"></div>
-  <!-- Subtle overlay for depth and atmosphere -->
-  <div class="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent pointer-events-none opacity-60"></div>
-  <!-- Soft vignette effect for focus -->
-  <div class="absolute inset-0 bg-radial-gradient pointer-events-none opacity-50"></div>
-  <!-- Subtle top glow for sky effect -->
-  <div class="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
+<div class="weather-background min-h-screen bg-gradient-to-b {backgroundGradient} fixed inset-0 transition-all duration-[2000ms] ease-in-out z-0 {isTransitioning ? 'earth-transition' : ''}">
 </div>
 
-<main bind:this={mainEl} class="min-h-screen p-4 md:p-8 max-w-4xl mx-auto relative z-10">
-  <div bind:this={headerEl} class="flex items-center gap-3 mb-4 flex-wrap relative z-[100]">
-    <div class="flex-shrink-0">
+<!-- Smooth Earth Travel Transition Overlay -->
+{#if isTransitioning}
+  <div class="earth-transition-overlay fixed inset-0 z-[5] pointer-events-none">
+    <div class="earth-rotation-effect"></div>
+    <div class="travel-lines">
+      {#each Array(8) as _, i}
+        <div class="travel-line" style="left: {i * 12.5}%; animation-delay: {i * 0.1}s;"></div>
+      {/each}
+    </div>
+  </div>
+{/if}
+
+<main bind:this={mainElement} class="min-h-screen p-4 md:p-8 max-w-4xl mx-auto relative z-10 liquid-glass-container {isTransitioning ? 'blur-transition' : ''}">
+  <div class="flex items-center gap-3 mb-4 flex-wrap relative" style="z-index: 100; isolation: isolate;" data-aos="fade-down" data-aos-duration="600" data-aos-delay="100">
+    <div class="flex-shrink-0" style="position: relative; z-index: 90;">
       <SavedLocations onLocationSelect={handleLocationSelect} {currentLocation} />
     </div>
-    <div class="flex-1 min-w-0">
+    <div class="flex-1 min-w-0" style="position: relative; z-index: 1;">
       <LocationSearch onLocationSelect={handleLocationSelect} />
     </div>
     {#if currentLocation && weatherData}
@@ -319,7 +376,7 @@
         {#if $savedLocations.some(loc => Math.abs(loc.latitude - currentLocation.latitude) < 0.001 && Math.abs(loc.longitude - currentLocation.longitude) < 0.001)}
           <button
             on:click={() => savedLocations.remove(currentLocation)}
-            class="bg-white/35 backdrop-blur-2xl rounded-2xl px-3 py-0 text-yellow-400 text-xs hover:bg-white/25 transition-all duration-300 border border-yellow-400/70 flex items-center gap-1.5 h-12 hover:scale-105 hover:shadow-2xl shadow-xl"
+            class="bg-white/10 backdrop-blur-xl rounded-2xl px-3 py-0 text-yellow-400 text-xs hover:bg-white/15 transition-all duration-300 border border-yellow-400/50 flex items-center gap-1.5 h-12 hover:scale-105 hover:shadow-xl shadow-lg"
             title="Remove from Saved"
           >
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -330,7 +387,7 @@
         {:else}
           <button
             on:click={() => savedLocations.add(currentLocation)}
-            class="bg-white/35 backdrop-blur-2xl rounded-2xl px-3 py-0 text-white text-xs hover:bg-white/25 transition-all duration-300 border border-white/50 flex items-center gap-1.5 h-12 hover:scale-105 hover:shadow-2xl shadow-xl"
+            class="bg-white/10 backdrop-blur-xl rounded-2xl px-3 py-0 text-white text-xs hover:bg-white/15 transition-all duration-300 border border-white/30 flex items-center gap-1.5 h-12 hover:scale-105 hover:shadow-xl shadow-lg"
             title="Save Location"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,6 +418,74 @@
     <div class="weather-content {isLoading ? 'loading-blur' : ''}">
       <CurrentWeather {weatherData} {locationName} {currentLocation} />
       <WeatherAnimation weatherCode={weatherData.current.weather_code} isDay={weatherData.current.is_day} timezone={weatherData.timezone} />
+      
+      <!-- Weather Summary Notes - Apple Style -->
+      {#if weatherData?.hourly && weatherData.hourly.time && weatherData.hourly.time.length > 0}
+        {@const hourly = weatherData.hourly}
+        {@const hourlyTimes = hourly.time || []}
+        {@const hourlyCodes = hourly.weather_code || []}
+        {@const hourlyApparentTemps = hourly.apparent_temperature || hourly.temperature_2m || []}
+        {@const nextCloudyHour = (() => {
+          const now = new Date();
+          const currentIndex = hourlyTimes.findIndex(time => {
+            const timeDate = new Date(time);
+            return timeDate > now;
+          });
+          if (currentIndex === -1) return null;
+          for (let i = currentIndex; i < Math.min(currentIndex + 24, hourlyTimes.length); i++) {
+            if (hourlyCodes[i] >= 1 && hourlyCodes[i] <= 3) {
+              return { time: hourlyTimes[i], code: hourlyCodes[i] };
+            }
+          }
+          return null;
+        })()}
+        {@const maxFeelsLike = (() => {
+          if (!hourlyApparentTemps || hourlyApparentTemps.length === 0) return null;
+          const now = new Date();
+          const currentIndex = hourlyTimes.findIndex(time => {
+            const timeDate = new Date(time);
+            return timeDate > now;
+          });
+          if (currentIndex === -1) return null;
+          const next24Hours = hourlyApparentTemps.slice(currentIndex, currentIndex + 24);
+          const validTemps = next24Hours.filter(t => t !== null && t !== undefined);
+          if (validTemps.length === 0) return null;
+          return Math.max(...validTemps);
+        })()}
+        {@const maxFeelsLikeTime = (() => {
+          if (!maxFeelsLike || !hourlyApparentTemps || hourlyApparentTemps.length === 0) return null;
+          const now = new Date();
+          const currentIndex = hourlyTimes.findIndex(time => {
+            const timeDate = new Date(time);
+            return timeDate > now;
+          });
+          if (currentIndex === -1) return null;
+          const maxIndex = hourlyApparentTemps.slice(currentIndex, currentIndex + 24).findIndex(t => Math.round(t) === Math.round(maxFeelsLike));
+          if (maxIndex === -1) return null;
+          return new Date(hourlyTimes[currentIndex + maxIndex]);
+        })()}
+        {#if nextCloudyHour || maxFeelsLike}
+          <div class="bg-white/20 backdrop-blur-xl rounded-2xl p-4 md:p-5 mb-4 border border-white/30" data-aos="fade-up" data-aos-delay="200" data-aos-duration="400" style="will-change: transform, opacity; transform: translateZ(0);">
+            <div class="space-y-2">
+              {#if nextCloudyHour}
+                {@const cloudTime = new Date(nextCloudyHour.time)}
+                {@const cloudHour = cloudTime.getHours()}
+                {@const cloudDescription = nextCloudyHour.code === 1 ? 'Mainly clear' : nextCloudyHour.code === 2 ? 'Partly cloudy' : 'Cloudy'}
+                <p class="text-white/90 text-sm md:text-base leading-relaxed font-light">
+                  {cloudDescription} conditions expected around {cloudHour}:00.
+                </p>
+              {/if}
+              {#if maxFeelsLike && maxFeelsLikeTime}
+                {@const maxHour = maxFeelsLikeTime.getHours()}
+                <p class="text-white/90 text-sm md:text-base leading-relaxed font-light">
+                  The highest Feels Like temperature will be {Math.round(maxFeelsLike)}° around {maxHour}:00.
+                </p>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      {/if}
+      
       <HourlyForecast {weatherData} />
       
       {#if weatherData?.current?.precipitation !== undefined && weatherData.current.precipitation !== null && weatherData.current.precipitation >= 0.5}
@@ -389,7 +514,7 @@
         {@const graphHeight = 30}
         {@const graphBottom = 40}
         
-        <div class="bg-white/25 backdrop-blur-2xl rounded-3xl p-2.5 md:p-3 mb-4 border border-white/40 shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <div class="bg-white/25 backdrop-blur-2xl rounded-3xl p-2.5 md:p-3 mb-4 border border-white/40 shadow-lg hover:shadow-xl transition-shadow duration-200" data-aos="fade-up" data-aos-delay="200" data-aos-duration="400" style="will-change: transform, opacity; transform: translateZ(0);">
           <div class="flex items-center gap-1.5 mb-2">
             <svg class="w-4 h-4 text-white/80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />

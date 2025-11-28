@@ -5,6 +5,7 @@
   export let isDay = true;
   export let timezone = null;
   
+  // Get current hour based on timezone
   function getCurrentHour() {
     if (timezone) {
       const now = new Date();
@@ -14,6 +15,7 @@
     return new Date().getHours();
   }
   
+  // Time-based state
   $: hour = getCurrentHour();
   $: isNight = hour >= 20 || hour < 5;
   $: isMorning = hour >= 7 && hour < 12;
@@ -21,6 +23,7 @@
   
   let timeInterval;
   
+  // Update hour every minute
   onMount(() => {
     timeInterval = setInterval(() => {
       hour = getCurrentHour();
@@ -31,6 +34,7 @@
     if (timeInterval) clearInterval(timeInterval);
   });
   
+  // Determine which animations to show based on weather code
   $: showRain = weatherCode >= 51 && weatherCode <= 67 || weatherCode >= 80 && weatherCode <= 82;
   $: showSnow = weatherCode >= 71 && weatherCode <= 77 || weatherCode >= 85 && weatherCode <= 86;
   $: showThunder = weatherCode >= 95;
@@ -38,17 +42,16 @@
   $: showFog = weatherCode >= 45 && weatherCode <= 48;
   $: showClear = weatherCode === 0;
   
-  $: showMorningLight = showClear && (isMorning || isDawn || (hour >= 5 && hour < 12));
+  // Special effects for clear weather
+  $: showSunFlare = showClear && (hour >= 6 && hour < 11);
   $: showNightEffects = showClear && isNight;
-  $: showSunrise = showClear && (isDawn || (hour >= 7 && hour < 9));
-  
 </script>
 
 <div class="weather-animation-container">
   {#if showRain}
     <!-- Rain Animation -->
     <div class="rain-container">
-      {#each Array(500) as _, i}
+      {#each Array(200) as _, i}
         {@const randomLeft = Math.random() * 100}
         {@const randomDelay = Math.random() * 3}
         {@const randomDuration = 0.4 + Math.random() * 0.6}
@@ -65,7 +68,7 @@
   {#if showSnow}
     <!-- Snow Animation -->
     <div class="snow-container">
-      {#each Array(150) as _, i}
+      {#each Array(60) as _, i}
         {@const randomLeft = Math.random() * 100}
         {@const randomSize = 3 + Math.random() * 4}
         <div 
@@ -92,53 +95,34 @@
   {/if}
   
   {#if showClouds}
-    <!-- Cloud Animation -->
+    <!-- Cloud Animation - Optimized -->
     <div class="clouds-container fixed inset-0 w-full h-full overflow-hidden">
-      {#each Array(12) as _, i}
-        {@const cloudSize = 180 + Math.random() * 250}
+      {#each Array(4) as _, i}
+        {@const cloudSize = 200 + Math.random() * 200}
         {@const cloudTop = 10 + Math.random() * 50}
-        {@const cloudDelay = (i * 8) % 40}
-        {@const cloudSpeed = 40 + Math.random() * 20}
-        {@const startPos = -600 - (i * 200)}
-        {@const opacity = 0.15 + Math.random() * 0.15}
+        {@const cloudDelay = (i * 10) % 40}
+        {@const cloudSpeed = 50 + Math.random() * 20}
+        {@const startPos = -600 - (i * 300)}
+        {@const opacity = 0.2 + Math.random() * 0.1}
         <div 
           class="cloud-group absolute"
-          style="left: {startPos}px; top: {cloudTop}%; animation-delay: {cloudDelay}s; animation-duration: {cloudSpeed}s;"
+          style="left: {startPos}px; top: {cloudTop}%; animation-delay: {cloudDelay}s; animation-duration: {cloudSpeed}s; will-change: transform; transform: translateZ(0);"
         >
-          <!-- Main cloud base - wider and flatter -->
+          <!-- Simplified cloud structure - only 3 layers instead of 7 -->
+          <!-- Main cloud base -->
           <div 
             class="cloud-part cloud-base absolute bg-white/20"
-            style="width: {cloudSize * 1.2}px; height: {cloudSize * 0.4}px; left: 0; top: {cloudSize * 0.3}px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: blur(50px); opacity: {opacity};"
+            style="width: {cloudSize * 1.3}px; height: {cloudSize * 0.5}px; left: 0; top: {cloudSize * 0.3}px; border-radius: 50%; filter: blur(40px); opacity: {opacity}; will-change: transform; transform: translateZ(0);"
           ></div>
-          <!-- Large cloud mass 1 -->
+          <!-- Large cloud mass -->
           <div 
             class="cloud-part cloud-mass absolute bg-white/20"
-            style="width: {cloudSize * 0.9}px; height: {cloudSize * 0.8}px; left: {cloudSize * 0.1}px; top: -{cloudSize * 0.1}px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: blur(60px); opacity: {opacity};"
+            style="width: {cloudSize * 1.0}px; height: {cloudSize * 0.9}px; left: {cloudSize * 0.15}px; top: -{cloudSize * 0.1}px; border-radius: 50%; filter: blur(45px); opacity: {opacity * 0.9}; will-change: transform; transform: translateZ(0);"
           ></div>
-          <!-- Large cloud mass 2 -->
+          <!-- Secondary cloud mass -->
           <div 
             class="cloud-part cloud-mass absolute bg-white/20"
-            style="width: {cloudSize * 0.85}px; height: {cloudSize * 0.75}px; left: {cloudSize * 0.4}px; top: -{cloudSize * 0.15}px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: blur(55px); opacity: {opacity * 0.9};"
-          ></div>
-          <!-- Medium cloud mass 3 -->
-          <div 
-            class="cloud-part cloud-mass absolute bg-white/20"
-            style="width: {cloudSize * 0.6}px; height: {cloudSize * 0.6}px; left: {cloudSize * 0.7}px; top: {cloudSize * 0.05}px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: blur(50px); opacity: {opacity * 0.8};"
-          ></div>
-          <!-- Small cloud puff 4 -->
-          <div 
-            class="cloud-part cloud-puff absolute bg-white/20"
-            style="width: {cloudSize * 0.45}px; height: {cloudSize * 0.45}px; left: -{cloudSize * 0.15}px; top: {cloudSize * 0.2}px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: blur(45px); opacity: {opacity * 0.7};"
-          ></div>
-          <!-- Small cloud puff 5 -->
-          <div 
-            class="cloud-part cloud-puff absolute bg-white/20"
-            style="width: {cloudSize * 0.5}px; height: {cloudSize * 0.5}px; left: {cloudSize * 0.85}px; top: -{cloudSize * 0.05}px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: blur(48px); opacity: {opacity * 0.75};"
-          ></div>
-          <!-- Additional layer for depth -->
-          <div 
-            class="cloud-part cloud-layer absolute bg-white/15"
-            style="width: {cloudSize * 1.1}px; height: {cloudSize * 0.5}px; left: {cloudSize * 0.05}px; top: {cloudSize * 0.25}px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: blur(70px); opacity: {opacity * 0.6};"
+            style="width: {cloudSize * 0.8}px; height: {cloudSize * 0.7}px; left: {cloudSize * 0.5}px; top: {cloudSize * 0.1}px; border-radius: 50%; filter: blur(40px); opacity: {opacity * 0.8}; will-change: transform; transform: translateZ(0);"
           ></div>
         </div>
       {/each}
@@ -157,10 +141,6 @@
     </div>
   {/if}
   
-  {#if showMorningLight}
-    <!-- Morning Light for Clear Weather - Reaches Header -->
-    <div class="corner-light-container fixed inset-0 w-full h-full"></div>
-  {/if}
   
   {#if showNightEffects}
     <!-- Night Stars and Moon -->
@@ -190,7 +170,22 @@
     </div>
   {/if}
   
-  
+  {#if showSunFlare}
+    <!-- Sun Flare Effect - Apple Style (Optimized) -->
+    <div class="sun-flare-container fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] pointer-events-none" style="z-index: 1; will-change: transform; transform: translateZ(0);">
+      <!-- Main soft glow - Single optimized layer -->
+      <div class="sun-flare-main-glow absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full" style="will-change: transform, opacity; transform: translateZ(0);"></div>
+      
+      <!-- Bright center core -->
+      <div class="sun-flare-core absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full" style="will-change: transform, opacity; transform: translateZ(0);"></div>
+      
+      <!-- Single horizontal streak -->
+      <div class="sun-flare-streak sun-flare-streak-h absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-1" style="will-change: transform, opacity; transform: translateZ(0);"></div>
+      
+      <!-- Single vertical streak -->
+      <div class="sun-flare-streak sun-flare-streak-v absolute top-0 left-1/2 -translate-x-1/2 w-1 h-[600px]" style="will-change: transform, opacity; transform: translateZ(0);"></div>
+    </div>
+  {/if}
   
 </div>
 
@@ -355,17 +350,6 @@
     }
   }
   
-  @keyframes cloudPuff {
-    0%, 100% {
-      transform: scale(1) translateY(0);
-      opacity: 0.25;
-    }
-    50% {
-      transform: scale(1.1) translateY(-5px);
-      opacity: 0.3;
-    }
-  }
-  
   @keyframes fogMove {
     0% {
       transform: translateX(-300px);
@@ -442,51 +426,20 @@
   
   .cloud-group {
     animation: cloudFloat linear infinite;
+    will-change: transform;
+    transform: translateZ(0);
   }
   
   .cloud-part {
-    will-change: transform;
+    will-change: transform, opacity;
+    transform: translateZ(0);
   }
   
   .cloud-base {
     transform-origin: center;
   }
   
-  .cloud-mass {
-    animation: cloudPuff 12s ease-in-out infinite;
-  }
-  
-  .cloud-puff {
-    animation: cloudPuff 10s ease-in-out infinite;
-  }
-  
-  .cloud-layer {
-    animation: cloudPuff 15s ease-in-out infinite;
-  }
-  
-  .cloud-mass:nth-of-type(2) {
-    animation-delay: 0s;
-  }
-  
-  .cloud-mass:nth-of-type(3) {
-    animation-delay: 3s;
-  }
-  
-  .cloud-mass:nth-of-type(4) {
-    animation-delay: 6s;
-  }
-  
-  .cloud-puff:nth-of-type(5) {
-    animation-delay: 2s;
-  }
-  
-  .cloud-puff:nth-of-type(6) {
-    animation-delay: 4s;
-  }
-  
-  .cloud-layer {
-    animation-delay: 1s;
-  }
+  /* Removed individual cloud part animations for better performance */
   
   .fog {
     animation: fogMove linear infinite;
@@ -534,30 +487,111 @@
     pointer-events: none;
   }
   
-  .corner-light-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: 
-      radial-gradient(ellipse 200% 150% at top left, 
-        rgba(255, 220, 120, 0.45) 0%,
-        rgba(255, 200, 100, 0.35) 20%,
-        rgba(255, 180, 80, 0.25) 40%,
-        rgba(255, 160, 60, 0.15) 60%,
-        rgba(255, 140, 40, 0.08) 80%,
-        transparent 100%
-      ),
-      linear-gradient(to bottom,
-        rgba(255, 230, 140, 0.2) 0%,
-        rgba(255, 210, 120, 0.15) 25%,
-        rgba(255, 190, 100, 0.1) 50%,
-        rgba(255, 170, 80, 0.05) 75%,
-        transparent 100%
-      );
-    pointer-events: none;
-    z-index: 5;
+  /* Sun Flare Effect - Apple Style (Optimized for Performance) */
+  .sun-flare-container {
+    animation: sunFlareFloat 40s ease-in-out infinite;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
+  
+  /* Main soft glow - Optimized single layer */
+  .sun-flare-main-glow {
+    background: radial-gradient(circle, 
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 250, 230, 0.3) 20%,
+      rgba(255, 240, 200, 0.2) 40%,
+      rgba(255, 230, 180, 0.1) 60%,
+      transparent 85%
+    );
+    transform: translate(-50%, -20%) translateZ(0);
+    animation: sunFlareGlow 20s ease-in-out infinite;
+    will-change: transform, opacity;
+    filter: blur(70px);
+    backface-visibility: hidden;
+  }
+  
+  /* Bright center core - Optimized */
+  .sun-flare-core {
+    background: radial-gradient(circle, 
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 240, 0.6) 20%,
+      rgba(255, 250, 220, 0.4) 40%,
+      rgba(255, 240, 200, 0.2) 60%,
+      transparent 80%
+    );
+    transform: translate(-50%, -30%) translateZ(0);
+    animation: sunFlareCorePulse 10s ease-in-out infinite;
+    will-change: transform, opacity;
+    filter: blur(30px);
+    backface-visibility: hidden;
+  }
+  
+  /* Clean light streaks - Optimized */
+  .sun-flare-streak {
+    background: linear-gradient(to right, 
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 250, 230, 0.2) 30%,
+      rgba(255, 240, 200, 0.1) 60%,
+      transparent 100%
+    );
+    border-radius: 50%;
+    will-change: transform, opacity;
+    filter: blur(1.5px);
+    backface-visibility: hidden;
+  }
+  
+  .sun-flare-streak-h {
+    transform: translate(-50%, -50%) translateZ(0);
+    animation: sunFlareStreak 18s ease-in-out infinite;
+  }
+  
+  .sun-flare-streak-v {
+    transform: translate(-50%, 0) translateZ(0);
+    animation: sunFlareStreak 16s ease-in-out infinite 1s;
+  }
+  
+  @keyframes sunFlareFloat {
+    0%, 100% {
+      transform: translate(-50%, 0) translateZ(0);
+    }
+    50% {
+      transform: translate(-50%, 8px) translateZ(0);
+    }
+  }
+  
+  @keyframes sunFlareGlow {
+    0%, 100% {
+      transform: translate(-50%, -20%) scale(1) translateZ(0);
+      opacity: 0.3;
+    }
+    50% {
+      transform: translate(-50%, -20%) scale(1.05) translateZ(0);
+      opacity: 0.4;
+    }
+  }
+  
+  @keyframes sunFlareCorePulse {
+    0%, 100% {
+      transform: translate(-50%, -30%) scale(1) translateZ(0);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translate(-50%, -30%) scale(1.08) translateZ(0);
+      opacity: 0.85;
+    }
+  }
+  
+  @keyframes sunFlareStreak {
+    0%, 100% {
+      opacity: 0.25;
+      transform: scale(1) translateZ(0);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(1.1) translateZ(0);
+    }
+  }
+  
 </style>
 

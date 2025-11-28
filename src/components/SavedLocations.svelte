@@ -4,33 +4,40 @@
   export let onLocationSelect;
   export let currentLocation = null;
   
+  // Component state
   let locations = [];
   let isOpen = false;
   
+  // Subscribe to saved locations store
   savedLocations.subscribe(value => {
     locations = value;
   });
   
+  // Handle location selection from dropdown
   function selectLocation(location) {
     onLocationSelect(location);
     isOpen = false;
   }
   
+  // Remove location from saved list
   function removeLocation(location, event) {
     event.stopPropagation();
     savedLocations.remove(location);
   }
   
+  // Toggle dropdown visibility
   function toggleOpen() {
     isOpen = !isOpen;
   }
   
+  // Check if location is currently selected
   function isCurrentLocation(location) {
     if (!currentLocation) return false;
     return Math.abs(location.latitude - currentLocation.latitude) < 0.001 &&
            Math.abs(location.longitude - currentLocation.longitude) < 0.001;
   }
   
+  // Close dropdown when clicking outside
   function handleClickOutside(event) {
     if (!event.target.closest('.saved-locations-container')) {
       isOpen = false;
@@ -40,11 +47,11 @@
 
 <svelte:window onclick={handleClickOutside} />
 
-<div class="relative saved-locations-container z-[90]">
+<div class="saved-locations-container" style="position: relative; z-index: 90; isolation: isolate; display: inline-block;">
   <button
     on:click={toggleOpen}
-    class="bg-white/35 backdrop-blur-2xl rounded-2xl px-3 md:px-4 py-0 border border-white/50 text-white hover:bg-white/25 active:bg-white/30 transition-all duration-200 flex items-center gap-2 h-12 flex-shrink-0 shadow-xl hover:shadow-2xl hover:scale-105"
-    style="text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);"
+    class="bg-white/10 backdrop-blur-lg rounded-2xl px-3 md:px-4 py-0 border border-white/30 text-white hover:bg-white/15 active:bg-white/20 transition-all duration-150 flex items-center gap-2 h-12 flex-shrink-0 shadow-lg hover:shadow-xl hover:scale-105"
+    style="text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); will-change: transform, background-color; transform: translateZ(0); position: relative; z-index: 91;"
     title="Saved Locations"
   >
     <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +60,8 @@
     </svg>
     <span class="font-medium text-xs md:text-sm min-w-[20px] text-center">{locations.length}</span>
     <svg 
-      class="w-4 h-4 flex-shrink-0 transform transition-transform duration-300 {isOpen ? 'rotate-180' : ''}" 
+      class="w-4 h-4 flex-shrink-0 transform transition-transform duration-200 {isOpen ? 'rotate-180' : ''}" 
+      style="will-change: transform; transform: translateZ(0);"
       fill="none" 
       stroke="currentColor" 
       viewBox="0 0 24 24"
@@ -63,13 +71,13 @@
   </button>
   
   {#if isOpen}
-    <div class="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white/30 backdrop-blur-2xl rounded-2xl p-3 border border-white/50 overflow-hidden shadow-2xl z-[90] max-h-[400px] overflow-y-auto" style="animation: fadeInDropdown 0.3s ease-out forwards;">
+    <div class="w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white/10 backdrop-blur-lg rounded-2xl p-3 border border-white/30 overflow-hidden shadow-xl max-h-[400px] overflow-y-auto" style="position: absolute; z-index: 92; isolation: isolate; pointer-events: auto; top: calc(100% + 0.5rem); right: 0; left: auto;">
       {#if locations.length > 0}
         {#each locations as location, index}
           <div
             on:click={() => selectLocation(location)}
-            class="flex items-center justify-between p-3 rounded-xl hover:bg-white/15 transition-all duration-200 cursor-pointer mb-1.5 last:mb-0 {isCurrentLocation(location) ? 'bg-white/15 ring-1 ring-white/20' : ''}"
-            style="animation: slideDown 0.3s ease-out {index * 0.05}s both;"
+            class="flex items-center justify-between p-3 rounded-xl hover:bg-white/15 transition-all duration-150 cursor-pointer mb-1.5 last:mb-0 {isCurrentLocation(location) ? 'bg-white/15 ring-1 ring-white/20' : ''}"
+            style="will-change: background-color; transform: translateZ(0);"
           >
             <div class="flex-1 min-w-0 pr-2">
               <p class="text-white font-semibold truncate text-sm mb-0.5">{location.name}</p>
@@ -81,7 +89,8 @@
             </div>
             <button
               on:click={(e) => removeLocation(location, e)}
-              class="p-2 hover:bg-white/25 rounded-lg transition-all duration-200 flex-shrink-0 active:scale-95"
+              class="p-2 hover:bg-white/25 rounded-lg transition-all duration-150 flex-shrink-0 active:scale-95"
+              style="will-change: transform, background-color; transform: translateZ(0);"
               aria-label="Remove location"
             >
               <svg class="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">

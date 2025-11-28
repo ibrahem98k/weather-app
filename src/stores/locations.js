@@ -1,9 +1,10 @@
 import { writable } from 'svelte/store';
 
+// Store for managing saved locations with localStorage persistence
 function createLocationsStore() {
   const { subscribe, set, update } = writable([]);
   
-  // Load from localStorage on initialization
+  // Load saved locations from localStorage on init
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('savedLocations');
     if (saved) {
@@ -17,9 +18,9 @@ function createLocationsStore() {
   
   return {
     subscribe,
+    // Add a new location (prevents duplicates)
     add: (location) => {
       update(locations => {
-        // Check if location already exists
         const exists = locations.some(loc => 
           Math.abs(loc.latitude - location.latitude) < 0.001 &&
           Math.abs(loc.longitude - location.longitude) < 0.001
@@ -35,6 +36,7 @@ function createLocationsStore() {
         return locations;
       });
     },
+    // Remove a location
     remove: (location) => {
       update(locations => {
         const newLocations = locations.filter(loc => 
@@ -47,6 +49,7 @@ function createLocationsStore() {
         return newLocations;
       });
     },
+    // Reload from localStorage
     load: () => {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('savedLocations');

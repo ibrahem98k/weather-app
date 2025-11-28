@@ -1,5 +1,7 @@
+// API base URL
 const BASE_URL = 'https://api.open-meteo.com/v1';
 
+// Search for locations by name
 export async function searchLocation(query) {
   try {
     const response = await fetch(
@@ -18,6 +20,7 @@ export async function searchLocation(query) {
   }
 }
 
+// Fetch weather forecast for given coordinates
 export async function getWeatherForecast(latitude, longitude) {
   try {
     const response = await fetch(
@@ -61,11 +64,13 @@ export async function getWeatherForecast(latitude, longitude) {
   }
 }
 
+// Format time string to readable time
 export function formatTime(timeString) {
   const date = new Date(timeString);
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+// Get emoji icon for weather code
 export function getWeatherIcon(weatherCode, isDay = true) {
   const codes = {
     0: isDay ? '☀️' : '🌙',
@@ -101,6 +106,7 @@ export function getWeatherIcon(weatherCode, isDay = true) {
   return codes[weatherCode] || (isDay ? '☀️' : '🌙');
 }
 
+// Get text description for weather code
 export function getWeatherDescription(weatherCode) {
   const descriptions = {
     0: 'Clear sky',
@@ -155,11 +161,13 @@ export function getWeatherDescription(weatherCode) {
   return 'Clear';
 }
 
+// Format date to full date string
 export function formatDate(timeString) {
   const date = new Date(timeString);
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
+// Format day - shows "Today", "Tomorrow", or weekday name
 export function formatDay(timeString) {
   const date = new Date(timeString);
   const today = new Date();

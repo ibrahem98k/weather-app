@@ -4,26 +4,31 @@
   export let weatherData;
   export let currentLocation = null;
   
+  // Extract weather data
   $: current = weatherData?.current;
   $: daily = weatherData?.daily;
   
+  // Find today's index in daily data
   $: todayIndex = (() => {
     if (!daily?.time) return -1;
     const today = new Date().toISOString().split('T')[0];
     return daily.time.findIndex(date => date.startsWith(today));
   })();
   
+  // Get today's specific data
   $: sunrise = todayIndex >= 0 && daily?.sunrise ? daily.sunrise[todayIndex] : null;
   $: sunset = todayIndex >= 0 && daily?.sunset ? daily.sunset[todayIndex] : null;
   $: todayPrecipitation = todayIndex >= 0 && daily?.precipitation_sum ? daily.precipitation_sum[todayIndex] : 0;
   $: uvIndexMax = todayIndex >= 0 && daily?.uv_index_max ? daily.uv_index_max[todayIndex] : current?.uv_index || 0;
   $: todayHigh = todayIndex >= 0 && daily?.temperature_2m_max ? daily.temperature_2m_max[todayIndex] : null;
   
+  // Convert wind direction degrees to compass direction
   function getWindDirection(degrees) {
     const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
     return directions[Math.round(degrees / 22.5) % 16];
   }
   
+  // Get UV index level description
   function getUVIndexLevel(uv) {
     if (uv <= 2) return 'Low';
     if (uv <= 5) return 'Moderate';
@@ -32,6 +37,7 @@
     return 'Extreme';
   }
   
+  // Get visibility description based on distance
   function getVisibilityDescription(km) {
     if (km >= 20) return 'Perfectly clear view';
     if (km >= 10) return 'Excellent visibility';
@@ -40,6 +46,7 @@
     return 'Poor visibility';
   }
   
+  // Get humidity description
   function getHumidityDescription(humidity) {
     if (humidity < 30) return 'Very dry';
     if (humidity < 50) return 'Comfortable';
@@ -47,6 +54,7 @@
     return 'Humid';
   }
   
+  // Calculate moon phase based on date
   function getMoonPhase(date = new Date()) {
     const knownNewMoon = new Date(Date.UTC(2000, 0, 6, 18, 14, 0));
     const currentDate = new Date(date);
@@ -94,10 +102,10 @@
 </script>
 
 {#if current}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4" data-aos="fade-up" data-aos-delay="200" data-aos-duration="500">
     <!-- Row 1: Feels Like, Visibility, Humidity -->
     <!-- Feels Like Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg" data-aos="fade-up" data-aos-delay="250" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-2">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -111,7 +119,7 @@
     </div>
     
     <!-- Visibility Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg" data-aos="fade-up" data-aos-delay="250" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-2">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -131,7 +139,7 @@
     </div>
     
     <!-- Humidity Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg" data-aos="fade-up" data-aos-delay="250" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-2">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -144,7 +152,7 @@
     
     <!-- Row 2: Sunrise/Sunset, Wind (center), Precipitation (right) -->
     <!-- Sunrise/Sunset Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg" data-aos="fade-up" data-aos-delay="350" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-3">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -164,7 +172,7 @@
     </div>
     
     <!-- Wind Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg" data-aos="fade-up" data-aos-delay="350" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-3">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -211,7 +219,7 @@
     </div>
     
     <!-- Precipitation Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg" data-aos="fade-up" data-aos-delay="350" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-2">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
@@ -226,7 +234,7 @@
     
     <!-- Row 3: UV Index, Pressure, Air Quality -->
     <!-- UV Index Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 flex flex-col transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg min-h-[160px]">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 flex flex-col transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg min-h-[160px]" data-aos="fade-up" data-aos-delay="450" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-3">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -246,7 +254,7 @@
     </div>
     
     <!-- Pressure Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 flex flex-col transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg min-h-[160px]">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 flex flex-col transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg min-h-[160px]" data-aos="fade-up" data-aos-delay="450" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-3">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -277,7 +285,7 @@
     </div>
     
     <!-- Air Quality Card -->
-    <div class="detail-card bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 flex flex-col transition-all duration-300 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg min-h-[160px]">
+    <div class="detail-card bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 flex flex-col transition-all duration-200 hover:scale-[1.02] hover:bg-white/30 hover:shadow-xl shadow-lg min-h-[160px]" data-aos="fade-up" data-aos-delay="450" data-aos-duration="400" >
       <div class="flex items-center gap-2 mb-3">
         <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -320,7 +328,7 @@
   </div>
   
   <!-- Moon Phase Card (Full Width) -->
-  <div class="bg-white/25 backdrop-blur-2xl rounded-2xl p-4 md:p-5 border border-white/40 mt-4 md:mt-5 transition-all duration-300 hover:scale-[1.01] hover:bg-white/30 shadow-lg hover:shadow-xl">
+  <div class="bg-white/25 backdrop-blur-lg rounded-2xl p-4 md:p-5 border border-white/40 mt-4 md:mt-5 transition-all duration-200 hover:scale-[1.01] hover:bg-white/30 shadow-lg hover:shadow-xl" data-aos="fade-up" data-aos-delay="480" data-aos-duration="400" >
     <div class="flex items-center justify-between gap-3">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 mb-2">
@@ -363,7 +371,7 @@
   <!-- Report an Issue & Open in Maps -->
   <div class="mt-4 md:mt-5 space-y-3">
     <!-- Report an Issue -->
-    <div class="bg-white/25 backdrop-blur-2xl rounded-2xl p-4 border border-white/40 shadow-lg">
+    <div class="bg-white/25 backdrop-blur-lg rounded-2xl p-4 border border-white/40 shadow-lg">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,7 +392,7 @@
           const url = `https://www.google.com/maps?q=${currentLocation.latitude},${currentLocation.longitude}`;
           window.open(url, '_blank');
         }}
-        class="w-full bg-white/25 backdrop-blur-2xl rounded-2xl p-4 border border-white/40 text-left hover:bg-white/15 transition-all duration-300 flex items-center justify-between shadow-lg hover:shadow-xl"
+        class="w-full bg-white/25 backdrop-blur-lg rounded-2xl p-4 border border-white/40 text-left hover:bg-white/15 transition-all duration-300 flex items-center justify-between shadow-lg hover:shadow-xl"
       >
         <span class="detail-box-label text-white font-medium">Open in Maps</span>
         <svg class="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">

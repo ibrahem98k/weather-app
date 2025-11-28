@@ -1,48 +1,16 @@
 <script>
-  import { gsap } from 'gsap';
   import { searchLocation } from '../utils/weatherApi.js';
   import { savedLocations } from '../stores/locations.js';
   
   export let onLocationSelect;
   
+  // Search state
   let searchQuery = '';
   let searchResults = [];
   let isSearching = false;
   let showResults = false;
-  let resultsContainer;
   
-  $: if (showResults && searchResults.length > 0) {
-    setTimeout(() => {
-      animateResults();
-    }, 50);
-  }
-  
-  function animateResults() {
-    if (!resultsContainer) return;
-    
-    const items = resultsContainer.querySelectorAll('.search-result-item');
-    if (items.length === 0) return;
-    
-    gsap.killTweensOf(items);
-    gsap.set(items, { clearProps: 'all' });
-    
-    gsap.fromTo(Array.from(items),
-      {
-        opacity: 0,
-        y: -15,
-        scale: 0.96
-      },
-      {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: 0.5,
-        stagger: 0.04,
-        ease: 'expo.out'
-      }
-    );
-  }
-  
+  // Searches for locations as user types
   async function handleSearch() {
     if (searchQuery.length < 2) {
       searchResults = [];
@@ -70,6 +38,7 @@
     showResults = false;
   }
   
+  // Check if location is already saved
   function isLocationSaved(location) {
     return $savedLocations.some(loc => 
       Math.abs(loc.latitude - location.latitude) < 0.001 &&
@@ -77,6 +46,7 @@
     );
   }
   
+  // Toggle save/unsave location
   function toggleSaveLocation(location, event) {
     event.stopPropagation();
     if (isLocationSaved(location)) {
@@ -86,6 +56,7 @@
     }
   }
   
+  // Handle location selection
   function selectLocation(location) {
     onLocationSelect(location);
     searchQuery = '';
@@ -93,6 +64,7 @@
     showResults = false;
   }
   
+  // Close results when clicking outside
   function handleClickOutside(event) {
     if (!event.target.closest('.search-container')) {
       showResults = false;
@@ -102,8 +74,8 @@
 
 <svelte:window onclick={handleClickOutside} />
 
-<div class="search-container relative z-[100]">
-  <div class="relative z-10">
+<div class="search-container" style="position: relative; z-index: 1; isolation: isolate;">
+  <div class="relative">
     <div class="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 pointer-events-none">
       <svg class="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -114,7 +86,7 @@
       bind:value={searchQuery}
       on:input={handleSearch}
       placeholder="Search for a city..."
-      class="w-full pl-12 pr-12 h-12 rounded-2xl bg-white/35 backdrop-blur-2xl text-white placeholder-white/80 focus:outline-none focus:ring-2 focus:ring-white/50 border border-white/50 text-base md:text-lg transition-all duration-200 hover:bg-white/40 focus:bg-white/40 relative z-10 shadow-xl"
+      class="w-full pl-12 pr-12 h-12 rounded-2xl bg-white/10 backdrop-blur-lg text-white placeholder-white/80 focus:outline-none focus:ring-2 focus:ring-white/30 border border-white/30 text-base md:text-lg transition-all duration-150 hover:bg-white/15 focus:bg-white/15 relative z-10 shadow-lg search-input"
       style="text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);"
     />
     <div class="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2 z-10">
@@ -123,7 +95,7 @@
       {:else if searchQuery.length > 0}
         <button
           on:click={clearSearch}
-          class="p-1 hover:bg-white/20 rounded-lg transition-all duration-200"
+          class="p-1 hover:bg-white/20 rounded-lg transition-all duration-150"
           aria-label="Clear search"
         >
           <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,10 +107,11 @@
   </div>
   
   {#if showResults && searchResults.length > 0}
-    <div bind:this={resultsContainer} class="absolute z-[100] w-full mt-2 rounded-2xl overflow-hidden shadow-2xl border border-white/20 pointer-events-auto" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(80px) saturate(200%); -webkit-backdrop-filter: blur(80px) saturate(200%);">
-      {#each searchResults as result}
+    <div class="absolute w-full mt-2 rounded-2xl overflow-hidden shadow-2xl border border-white/20 pointer-events-auto search-results-container" style="z-index: 2; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%);">
+      {#each searchResults as result, index}
         <button
-          class="search-result-item w-full px-5 py-4 text-left text-white hover:bg-white/30 active:bg-white/35 transition-all duration-200 border-b border-white/10 last:border-0 flex items-center justify-between group cursor-pointer relative"
+          class="search-result-item w-full px-5 py-4 text-left text-white hover:bg-white/30 active:bg-white/35 transition-all duration-150 border-b border-white/10 last:border-0 flex items-center justify-between group cursor-pointer relative"
+          style="animation-delay: {index * 20}ms;"
           on:click={() => selectLocation(result)}
           type="button"
         >
@@ -148,7 +121,8 @@
           </div>
           <button
             on:click|stopPropagation={(e) => toggleSaveLocation(result, e)}
-            class="p-2.5 hover:bg-white/50 rounded-xl transition-all duration-200 ml-3 hover:scale-110 active:scale-95 min-w-[48px] min-h-[48px] flex items-center justify-center flex-shrink-0 relative z-20 pointer-events-auto"
+            class="p-2.5 hover:bg-white/50 rounded-xl transition-all duration-150 ml-3 hover:scale-110 active:scale-95 min-w-[48px] min-h-[48px] flex items-center justify-center flex-shrink-0 relative z-20 pointer-events-auto"
+            style="will-change: transform, background-color; transform: translateZ(0);"
             type="button"
             aria-label={$savedLocations.some(loc => Math.abs(loc.latitude - result.latitude) < 0.001 && Math.abs(loc.longitude - result.longitude) < 0.001) ? "Remove from saved" : "Save location"}
           >
@@ -167,4 +141,36 @@
     </div>
   {/if}
 </div>
+
+<style>
+  /* Lightweight search animations */
+  .search-results-container {
+    animation: slideDown 0.2s ease-out;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .search-result-item {
+    animation: fadeIn 0.2s ease-out forwards;
+    opacity: 0;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>
 
